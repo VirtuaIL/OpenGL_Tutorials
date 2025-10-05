@@ -1,27 +1,43 @@
 #include<iostream>
 #include<glad/glad.h>
 #include<GLFW/glfw3.h>
+#include<string>
+#include <fstream>
+#include <sstream>
 
-const char* vertexShaderSource = "#version 330 core\n"
-"layout (location = 0) in vec3 aPos;\n"
-"void main()\n"
-"{\n"
-"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-"}\0";
+//const char* vertexShaderSource = "#version 330 core\n"
+//"layout (location = 0) in vec3 in_position;\n"
+//"layout (location = 1) in vec3 in_color;\n"
+//"out vec3 v_color;\n"
+//"void main()\n"
+//"{\n"
+//"   gl_Position = vec4(in_position, 1.0);\n"
+//"   gl_Position.xyz *= 0.25;\n"
+//"   v_color = in_color;\n"
+//"}\0";
 
-const char* fragmentShaderSource = "#version 330 core\n"
-"out vec4 FragColor;\n"
-"void main()\n"
-"{\n"
-"   FragColor = vec4(0.8f, 0.3f, 0.02f, 1.0f);\n"
-"}\n\0";
+//const char* fragmentShaderSource = "#version 330 core\n"
+//"layout (location = 0) out vec4 out_color;\n"
+//"in vec3 v_color;\n"
+//"void main()\n"
+//"{\n"
+//"   out_color = vec4(v_color, 1.0f);\n"
+//"}\n\0";
 
-
+std::string loadShaderSource(const char* filepath) {
+	std::ifstream file(filepath);
+	if (!file.is_open()) {
+		std::cerr << "Failed to open shader file: " << filepath << std::endl;
+		return "";
+	}
+	std::stringstream ss;
+	ss << file.rdbuf();
+	return ss.str();
+}
 
 
 int main()
 {
-
 
 	// Initialize GLFW
 	glfwInit();
@@ -54,12 +70,21 @@ int main()
 
 	GLfloat vertices[] =
 	{ //     COORDINATES     //
-		-0.5f, -0.5f, 0.0f, // Lower left corner
-		 0.5f, -0.5f, 0.0f, // Lower right corner
-		 0.0f,  0.5f, 0.0f  // Upper corner
+		-0.5f, -0.5f, 0.0f, 1.0f,0.0f,0.0f, // Lower left corner
+		 0.5f, -0.5f, 0.0f, 0.0f,1.0f,0.0f, // Lower right corner
+		 0.0f,  0.5f, 0.0f, 0.0f,0.0f,1.0f  // Upper corner
 	};
 
 #pragma region shadery
+
+	std::string vertexSourceStr = loadShaderSource("res/shaders/basic.vert");
+	//std::string vertexSourceStr = loadShaderSource("basic")
+	std::string fragmentSourceStr = loadShaderSource("res/shaders/basic.frag");
+	const char* vertexShaderSource = vertexSourceStr.c_str();
+	const char* fragmentShaderSource = fragmentSourceStr.c_str();
+
+
+
 
 	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
 
@@ -138,10 +163,13 @@ int main()
 	// - GL_FALSE -> nie normalizuj
 	// - 3 * sizeof(float) -> odstêp miêdzy kolejnymi wierzcho³kami (stride)
 	// - (void*)0 -> przesuniêcie od pocz¹tku danych (offset = 0)
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 0);
 
 	// W³¹czenie u¿ycia atrybutu o indeksie 0 (aktywacja strumienia danych wierzcho³ków)
 	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(sizeof(float)*3));
+	glEnableVertexAttribArray(1);
 
 	// Odwi¹zanie bufora VBO (dla porz¹dku; nie jest obowi¹zkowe)
 	// Dziêki temu unikamy przypadkowej modyfikacji danych po konfiguracji
