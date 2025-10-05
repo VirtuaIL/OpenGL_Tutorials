@@ -1,252 +1,199 @@
-// dear imgui: standalone example application for GLFW + OpenGL 3, using programmable pipeline
-// If you are new to dear imgui, see examples/README.txt and documentation at the top of imgui.cpp.
-// (GLFW is a cross-platform general purpose library for handling windows, inputs, OpenGL/Vulkan graphics context creation, etc.)
+#include<iostream>
+#include<glad/glad.h>
+#include<GLFW/glfw3.h>
 
-#include "imgui.h"
-#include "imgui_impl/imgui_impl_glfw.h"
-#include "imgui_impl/imgui_impl_opengl3.h"
-#include <stdio.h>
+const char* vertexShaderSource = "#version 330 core\n"
+"layout (location = 0) in vec3 aPos;\n"
+"void main()\n"
+"{\n"
+"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+"}\0";
 
-#define IMGUI_IMPL_OPENGL_LOADER_GLAD
+const char* fragmentShaderSource = "#version 330 core\n"
+"out vec4 FragColor;\n"
+"void main()\n"
+"{\n"
+"   FragColor = vec4(0.8f, 0.3f, 0.02f, 1.0f);\n"
+"}\n\0";
 
-#include <glad/glad.h>  // Initialize with gladLoadGL()
 
-#include <GLFW/glfw3.h> // Include glfw3.h after our OpenGL definitions
-#include <spdlog/spdlog.h>
 
-static void glfw_error_callback(int error, const char* description)
+
+int main()
 {
-    fprintf(stderr, "Glfw Error %d: %s\n", error, description);
+
+
+	// Initialize GLFW
+	glfwInit();
+
+	// Tell GLFW what version of OpenGL we are using 
+	// In this case we are using OpenGL 3.3
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	// Tell GLFW we are using the CORE profile
+	// So that means we only have the modern functions
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+	GLFWwindow* window = glfwCreateWindow(800, 800, "Triangle", NULL, NULL);
+	// Error check if the window fails to create
+	if (window == NULL)
+	{
+		std::cout << "Failed to create GLFW window" << std::endl;
+		glfwTerminate();
+		return -1;
+	}
+	// Introduce the window into the current context
+	glfwMakeContextCurrent(window);
+
+
+	//Load GLAD so it configures OpenGL
+	gladLoadGL();
+	// Specify the viewport of OpenGL in the Window
+	// In this case the viewport goes from x = 0, y = 0, to x = 800, y = 800
+	glViewport(0, 0, 800, 800);
+
+	GLfloat vertices[] =
+	{ //     COORDINATES     //
+		-0.5f, -0.5f, 0.0f, // Lower left corner
+		 0.5f, -0.5f, 0.0f, // Lower right corner
+		 0.0f,  0.5f, 0.0f  // Upper corner
+	};
+
+#pragma region shadery
+
+	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+
+	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+	glCompileShader(vertexShader);
+
+	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+
+	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+	glCompileShader(fragmentShader);
+
+	GLuint shaderProgram = glCreateProgram();
+
+	glAttachShader(shaderProgram, vertexShader);
+	glAttachShader(shaderProgram, fragmentShader);
+
+	glLinkProgram(shaderProgram);
+
+	glDeleteShader(vertexShader);
+	glDeleteShader(fragmentShader);
+
+#pragma endregion
+
+
+#pragma region VAO i VBO
+
+	// KOLEJNOŒÆ:
+
+	// 1. Utworzenie i zbindowanie VAO (Vertex Array Object)
+
+	// 2. Utworzenie i zbindowanie VBO (Vertex Buffer Object)
+
+	// 3. Za³adowanie danych do VBO (Vertex Buffer Object)
+
+	// 4. Konfiguracja czytania atrybutów w VAO (Vertex Array Object)
+
+	// 5. Odbindowanie wszystkiego
+
+
+	// -------------------------------------------------------
+
+
+	// VAO - Vertex Array Object
+	// VBO - Vertex Buffer Object
+
+
+	// Tworzenie obiektów: VAO (Vertex Array Object) i VBO (Vertex Buffer Object)
+	// VAO zapamiêtuje konfiguracjê atrybutów wierzcho³ków (np. który bufor zawiera dane pozycji, koloru itp.)
+	// VBO przechowuje surowe dane wierzcho³ków (pozycje, kolory, tekstury) w pamiêci karty graficznej
+	GLuint VAO, VBO;
+
+	// Utworzenie obiektu VAO (reprezentuje "zestaw ustawieñ" do rysowania obiektów)
+	glGenVertexArrays(1, &VAO);
+	// Aktywacja (zbindowanie) VAO — od tego momentu wszystkie operacje dotycz¹ce VBO i atrybutów
+	// bêd¹ zapamiêtane wewn¹trz tego konkretnego VAO
+	glBindVertexArray(VAO);
+
+
+	// Utworzenie bufora VBO, który bêdzie przechowywa³ dane wierzcho³ków
+	glGenBuffers(1, &VBO);
+
+	// Zbindowanie bufora VBO do celu GL_ARRAY_BUFFER — oznacza, ¿e operacje na GL_ARRAY_BUFFER
+	// (np. wype³nianie danych) bêd¹ dotyczyæ w³aœnie tego bufora
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+	// Przekazanie danych wierzcho³ków do pamiêci karty graficznej
+	// sizeof(vertices) – rozmiar ca³ej tablicy danych
+	// vertices – wskaŸnik do danych
+	// GL_STATIC_DRAW – wskazuje, ¿e dane bêd¹ rzadko zmieniane (optymalizacja sterownika)
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	// Zdefiniowanie sposobu interpretacji danych w VBO przez potok graficzny:
+	// - 0 -> numer atrybutu (location = 0 w shaderze)
+	// - 3 -> liczba sk³adowych na wierzcho³ek (x, y, z)
+	// - GL_FLOAT -> typ danych
+	// - GL_FALSE -> nie normalizuj
+	// - 3 * sizeof(float) -> odstêp miêdzy kolejnymi wierzcho³kami (stride)
+	// - (void*)0 -> przesuniêcie od pocz¹tku danych (offset = 0)
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+
+	// W³¹czenie u¿ycia atrybutu o indeksie 0 (aktywacja strumienia danych wierzcho³ków)
+	glEnableVertexAttribArray(0);
+
+	// Odwi¹zanie bufora VBO (dla porz¹dku; nie jest obowi¹zkowe)
+	// Dziêki temu unikamy przypadkowej modyfikacji danych po konfiguracji
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	// Odwi¹zanie VAO — koñczy konfiguracjê tego zestawu atrybutów
+	// Teraz VAO "zapamiêta³o", z jakiego VBO korzysta i jak interpretowaæ dane
+	glBindVertexArray(0);
+
+#pragma endregion
+
+
+
+
+	// Specify the color of the background
+	glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
+	// Clean the back buffer and assign the new color to it
+	glClear(GL_COLOR_BUFFER_BIT);
+	// Swap the back buffer with the front buffer
+	glfwSwapBuffers(window);
+
+
+
+	// Main while loop
+	while (!glfwWindowShouldClose(window))
+	{
+
+		glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		glUseProgram(shaderProgram);
+
+		glBindVertexArray(VAO);
+
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+
+		glfwSwapBuffers(window);
+
+
+		// Take care of all GLFW events
+		glfwPollEvents();
+	}
+
+	glDeleteVertexArrays(1, &VAO);
+	glDeleteBuffers(1, &VBO);
+	glDeleteProgram(shaderProgram);
+
+
+
+	// Delete window before ending the program
+	glfwDestroyWindow(window);
+	// Terminate GLFW before ending the program
+	glfwTerminate();
+	return 0;
 }
-
-bool init();
-void init_imgui();
-
-void input();
-void update();
-void render();
-
-void imgui_begin();
-void imgui_render();
-void imgui_end();
-
-void end_frame();
-
-constexpr int32_t WINDOW_WIDTH  = 1920;
-constexpr int32_t WINDOW_HEIGHT = 1080;
-
-GLFWwindow* window = nullptr;
-
-// Change these to lower GL version like 4.5 if GL 4.6 can't be initialized on your machine
-const     char*   glsl_version     = "#version 460";
-constexpr int32_t GL_VERSION_MAJOR = 4;
-constexpr int32_t GL_VERSION_MINOR = 6;
-
-bool   show_demo_window    = true;
-bool   show_another_window = false;
-ImVec4 clear_color         = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
-int main(int, char**)
-{
-    if (!init())
-    {
-        spdlog::error("Failed to initialize project!");
-        return EXIT_FAILURE;
-    }
-    spdlog::info("Initialized project.");
-
-    init_imgui();
-    spdlog::info("Initialized ImGui.");
-
-    // Main loop
-    while (!glfwWindowShouldClose(window))
-    {
-        // Process I/O operations here
-        input();
-
-        // Update game objects' state here
-        update();
-
-        // OpenGL rendering code here
-        render();
-
-        // Draw ImGui
-        imgui_begin();
-        imgui_render(); // edit this function to add your own ImGui controls
-        imgui_end(); // this call effectively renders ImGui
-
-        // End frame and swap buffers (double buffering)
-        end_frame();
-    }
-
-    // Cleanup
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
-
-    glfwDestroyWindow(window);
-    glfwTerminate();
-
-    return 0;
-}
-
-bool init()
-{
-    // Setup window
-    glfwSetErrorCallback(glfw_error_callback);
-    if (!glfwInit()) 
-    {
-        spdlog::error("Failed to initalize GLFW!");
-        return false;
-    }
-
-    // GL 4.6 + GLSL 460
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, GL_VERSION_MAJOR);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, GL_VERSION_MINOR);
-    glfwWindowHint(GLFW_OPENGL_PROFILE,        GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
-
-    // Create window with graphics context
-    window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Dear ImGui GLFW+OpenGL4 example", NULL, NULL);
-    if (window == NULL)
-    {
-        spdlog::error("Failed to create GLFW Window!");
-        return false;
-    }
-
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(1); // Enable VSync - fixes FPS at the refresh rate of your screen
-
-    bool err = !gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-
-    if (err)
-    {
-        spdlog::error("Failed to initialize OpenGL loader!");
-        return false;
-    }
-
-    return true;
-}
-
-void init_imgui()
-{
-    // Setup Dear ImGui binding
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
-
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init(glsl_version);
-
-    // Setup style
-    ImGui::StyleColorsDark();
-    //ImGui::StyleColorsClassic();
-
-    // Load Fonts
-    // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
-    // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
-    // - If the file cannot be loaded, the function will return NULL. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
-    // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
-    // - Read 'misc/fonts/README.txt' for more instructions and details.
-    // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-    //io.Fonts->AddFontDefault();
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
-    //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
-    //IM_ASSERT(font != NULL);
-}
-
-void input()
-{
-    // I/O ops go here
-}
-
-void update()
-{
-    // Update game objects' state here
-}
-
-void render()
-{
-    // OpenGL Rendering code goes here
-}
-
-void imgui_begin()
-{
-    // Start the Dear ImGui frame
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-}
-
-void imgui_render()
-{
-    /// Add new ImGui controls here
-    // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-    if (show_demo_window)
-        ImGui::ShowDemoWindow(&show_demo_window);
-
-    // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
-    {
-        static float f = 0.0f;
-        static int counter = 0;
-
-        ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-        ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-        ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-        ImGui::Checkbox("Another Window", &show_another_window);
-
-        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-        ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-        if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-            counter++;
-        ImGui::SameLine();
-        ImGui::Text("counter = %d", counter);
-
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-        ImGui::End();
-    }
-
-    // 3. Show another simple window.
-    if (show_another_window)
-    {
-        ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-        ImGui::Text("Hello from another window!");
-        if (ImGui::Button("Close Me"))
-            show_another_window = false;
-        ImGui::End();
-    }
-}
-
-void imgui_end()
-{
-    ImGui::Render();
-    int display_w, display_h;
-    glfwMakeContextCurrent(window);
-    glfwGetFramebufferSize(window, &display_w, &display_h);
-
-    glViewport(0, 0, display_w, display_h);
-    glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-}
-
-void end_frame()
-{
-    // Poll and handle events (inputs, window resize, etc.)
-    // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-    // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
-    // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
-    // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
-    glfwPollEvents();
-    glfwMakeContextCurrent(window);
-    glfwSwapBuffers(window);
-}
-
